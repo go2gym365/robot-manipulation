@@ -24,9 +24,9 @@ def main():
     model = mujoco.MjModel.from_xml_string(XML)
     data = mujoco.MjData(model)
 
-    print("nq:", model.nq)
-    print("nv:", model.nv)
-    print("nu:", model.nu)
+    print("nq:", model.nq) # position state 갯수
+    print("nv:", model.nv) # velocity state 갯수
+    print("nu:", model.nu) # control input 갯수
 
     for t in range(100):
         data.ctrl[:] = np.array([0.5, -0.2], dtype=np.float64)
