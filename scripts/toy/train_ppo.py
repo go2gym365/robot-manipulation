@@ -1,7 +1,7 @@
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
 
-from envs.reach_env import ReachEnv
+from envs.toy.reach_env import ReachEnv
 
 def main():
     env =  ReachEnv()
@@ -18,7 +18,7 @@ def main():
             gamma=0.99
         )
     model.learn(total_timesteps=20000)
-    model.save("models/ppo_reach")
+    model.save("models/toy/ppo_reach")
 
 
 if __name__ == "__main__":

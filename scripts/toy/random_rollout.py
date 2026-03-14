@@ -1,6 +1,4 @@
-from envs.reach_env import ReachEnv
-import numpy as np
-
+from envs.toy.reach_env import ReachEnv
 
 def main():
     env = ReachEnv()
@@ -16,13 +14,7 @@ def main():
         print("Initial info:", info)
 
         while not done:
-            ee_pos = obs[:2]
-            target_pos = obs[2:]
-            direction = target_pos - ee_pos
-
-            # target 방향으로 가는 간단한 정책
-            action = np.clip(direction * 5.0, -1.0, 1.0).astype(np.float32)
-
+            action = env.action_space.sample()
             obs, reward, terminated, truncated, info = env.step(action)
 
             total_reward += reward
