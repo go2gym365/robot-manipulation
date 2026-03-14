@@ -55,9 +55,9 @@ class ReachEnv(gym.Env):
         dist = np.linalg.norm(self.ee_pos - self.target_pos)
 
         # 기본 reward: 가까워질수록 덜 음수
-        reward = -dist
+        reward = float(-dist) # 리워드를 float로 기대함
 
-        terminated = dist < 0.05
+        terminated = bool(dist < 0.05)
         truncated = self.step_count >= self.max_steps
 
         if terminated:
