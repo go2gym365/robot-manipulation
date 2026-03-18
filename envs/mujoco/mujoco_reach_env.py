@@ -10,8 +10,8 @@ XML = """
 
     <worldbody>
         <body name="point" pos="0 0 0">
-            <joint name="slide_x" type="slide" axis="1 0 0"/>
-            <joint name="slide_y" type="slide" axis="0 1 0"/>
+            <joint name="slide_x" type="slide" axis="1 0 0" damping="1.0"/>
+            <joint name="slide_y" type="slide" axis="0 1 0" damping="1.0"/>
             <geom name="agent" type="sphere" size="0.04" rgba="0.2 0.6 0.9 1"/>
         </body>
 
@@ -45,7 +45,7 @@ class MujocoReachEnv(gym.Env):
 
         # observation = [agent_x, agent_y, target_x, target_y, rel_x, rel_y]
         self.observation_space = spaces.Box(
-            low=-np.inf, high=np.inf, shape=(6,), dtype=np.float32
+            low=-np.inf, high=np.inf, shape=(8,), dtype=np.float32
         )
 
         # action = 2D control input
@@ -67,10 +67,11 @@ class MujocoReachEnv(gym.Env):
         return self.model.body_pos[self.target_body_id][:2].copy()
 
     def _get_obs(self):
-        agent_pos = self._get_agent_pos()
+        agent_pos = self.data.qpos[:2].copy()
+        agent_vel = self.data.qvel[:2].copy()
         target_pos = self._get_target_pos()
         rel = target_pos - agent_pos
-        obs = np.concatenate([agent_pos, target_pos, rel]).astype(np.float32)
+        obs = np.concatenate([agent_pos, agent_vel, target_pos, rel]).astype(np.float32)
         return obs
 
     def _get_info(self):
@@ -79,7 +80,7 @@ class MujocoReachEnv(gym.Env):
         dist = np.linalg.norm(target_pos - agent_pos)
         return {
             "distance": float(dist),
-            "is_success": bool(dist < 0.05),
+            "is_success": bool(dist < 0.08),
         }
 
     def reset(self, seed=None, options=None):
@@ -93,7 +94,7 @@ class MujocoReachEnv(gym.Env):
         self.data.qvel[:] = np.array([0.0, 0.0], dtype=np.float64)
 
         # target 랜덤 위치
-        target_xy = self.np_random.uniform(low=-0.8, high=0.8, size=(2,))
+        target_xy = self.np_random.uniform(low=-0.5, high=0.5, size=(2,))
         self.model.body_pos[self.target_body_id][:2] = target_xy
         self.model.body_pos[self.target_body_id][2] = 0.0
 
@@ -116,7 +117,7 @@ class MujocoReachEnv(gym.Env):
         dist = np.linalg.norm(target_pos - agent_pos)
 
         reward = float(-dist)
-        terminated = bool(dist < 0.05)
+        terminated = bool(dist < 0.08)
         truncated = bool(self.step_count >= self.max_steps)
 
         if terminated:
