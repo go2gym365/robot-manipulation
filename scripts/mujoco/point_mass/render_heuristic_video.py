@@ -2,7 +2,7 @@ import os
 import imageio.v2 as imageio
 import numpy as np
 
-from envs.mujoco.mujoco_reach_env import MujocoReachEnv
+from envs.mujoco.point_mass.env import MujocoReachEnv
 
 
 def main():

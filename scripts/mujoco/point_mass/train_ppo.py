@@ -1,7 +1,7 @@
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
 
-from envs.mujoco.mujoco_reach_env import MujocoReachEnv
+from envs.mujoco.point_mass.env import MujocoReachEnv
 
 
 def main():
