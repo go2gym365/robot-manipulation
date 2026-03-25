@@ -96,7 +96,7 @@ class MujocoSingleArmReachEnv(gym.Env):
         dist = np.linalg.norm(target_pos - ee_pos)
         return {
             "distance": float(dist),
-            "is_success": bool(dist < 0.06),
+            "is_success": bool(dist < 0.08),
         }
 
     def reset(self, seed=None, options=None):
@@ -120,6 +120,10 @@ class MujocoSingleArmReachEnv(gym.Env):
 
         mujoco.mj_forward(self.model, self.data)
 
+        ee_pos = self._get_ee_pos()
+        target_pos = self._get_target_pos()
+        self.prev_dist = np.linalg.norm(target_pos - ee_pos)
+
         obs = self._get_obs()
         info = self._get_info()
         return obs, info
@@ -136,12 +140,15 @@ class MujocoSingleArmReachEnv(gym.Env):
         target_pos = self._get_target_pos()
         dist = np.linalg.norm(target_pos - ee_pos)
 
-        reward = float(-dist)
-        terminated = bool(dist < 0.06)
+        reward = float(self.prev_dist - dist) - 0.01
+
+        terminated = bool(dist < 0.08)
         truncated = bool(self.step_count >= self.max_steps)
 
         if terminated:
             reward += 10.0
+
+        self.prev_dist = dist
 
         obs = self._get_obs()
         info = self._get_info()
