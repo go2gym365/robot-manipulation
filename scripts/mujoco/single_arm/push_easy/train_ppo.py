@@ -20,7 +20,7 @@ def main():
         device="cpu",
     )
 
-    model.learn(total_timesteps=100000)
+    model.learn(total_timesteps=200000)
     model.save("models/mujoco/single_arm/push_easy/ppo_push_easy")
 
     env.close()

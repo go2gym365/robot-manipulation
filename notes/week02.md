@@ -17,3 +17,10 @@
 - end-effector는 object 쪽으로 접근하는 행동을 일부 학습했지만, object-target distance를 안정적으로 줄이는 pushing policy는 아직 형성되지 않았다.
 - 즉 현재 단계에서는 접근(skill of reaching object)은 부분적으로 학습되었지만, contact 이후 target 방향으로 물체를 밀어내는 manipulation은 여전히 어렵다는 점을 확인했다.
 - 다음 단계에서는 push task를 더 쉬운 curriculum으로 바꾸기 위해 object와 target 배치를 거의 일직선(오른쪽 방향)으로 제한하는 실험을 진행할 예정이다.
+
+## Single Arm Push Easy v2
+- push task의 난이도를 낮추기 위해 object와 target 배치를 거의 일직선(오른쪽 방향)으로 제한한 curriculum 버전을 실험했다.
+- object의 y 범위를 줄이고, target을 object의 오른쪽에만 생성하도록 설정하여 task를 사실상 “한 방향 push” 문제로 단순화했다.
+- 그 결과 PPO evaluation에서 success rate 1.00 (10/10), average steps 14.30을 기록하였다.
+- 이를 통해 PPO가 pushing behavior 자체를 학습할 수 없었던 것이 아니라, 기존 setting에서는 exploration과 task geometry가 너무 어려웠다는 점을 확인했다.
+- 즉 manipulation에서는 reward shaping뿐 아니라 task curriculum 설계가 매우 중요하다는 점을 실험적으로 확인했다.

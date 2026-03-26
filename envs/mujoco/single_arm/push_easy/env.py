@@ -10,32 +10,29 @@ XML = """
     <option timestep="0.02" gravity="0 0 0"/>
 
     <default>
-        <geom friction="1.0 0.1 0.1" condim="3"/>
+        <geom friction="1.2 0.1 0.1" condim="3"/>
     </default>
 
     <worldbody>
-        <!-- target marker -->
         <body name="target" pos="0.72 0.0 0">
             <geom name="target_geom" type="sphere" size="0.05" rgba="0.9 0.2 0.2 0.5"/>
         </body>
 
-        <!-- movable object -->
         <body name="object" pos="0.56 0.0 0">
-            <joint name="obj_slide_x" type="slide" axis="1 0 0" damping="2.0"/>
-            <joint name="obj_slide_y" type="slide" axis="0 1 0" damping="2.0"/>
+            <joint name="obj_slide_x" type="slide" axis="1 0 0" damping="2.5"/>
+            <joint name="obj_slide_y" type="slide" axis="0 1 0" damping="2.5"/>
             <geom name="object_geom" type="sphere" size="0.045" rgba="0.9 0.6 0.1 1"/>
         </body>
 
-        <!-- arm -->
         <body name="base" pos="0 0 0">
             <geom name="base_geom" type="sphere" size="0.03" rgba="0.2 0.2 0.2 1"/>
 
             <body name="link1" pos="0 0 0">
-                <joint name="joint1" type="hinge" axis="0 0 1" range="-3.14 3.14" damping="1.0"/>
+                <joint name="joint1" type="hinge" axis="0 0 1" range="-3.14 3.14" damping="1.2"/>
                 <geom name="link1_geom" type="capsule" fromto="0 0 0 0.5 0 0" size="0.04" rgba="0.2 0.6 0.9 1"/>
 
                 <body name="link2" pos="0.5 0 0">
-                    <joint name="joint2" type="hinge" axis="0 0 1" range="-3.14 3.14" damping="1.0"/>
+                    <joint name="joint2" type="hinge" axis="0 0 1" range="-3.14 3.14" damping="1.2"/>
                     <geom name="link2_geom" type="capsule" fromto="0 0 0 0.35 0 0" size="0.035" rgba="0.2 0.8 0.4 1"/>
 
                     <body name="ee_body" pos="0.35 0 0">
@@ -62,7 +59,7 @@ class MujocoSingleArmPushEasyEnv(gym.Env):
         super().__init__()
 
         self.render_mode = render_mode
-        self.success_threshold = 0.10
+        self.success_threshold = 0.12
 
         self.contact_threshold_1 = 0.12
         self.contact_threshold_2 = 0.08
@@ -85,13 +82,11 @@ class MujocoSingleArmPushEasyEnv(gym.Env):
             self.model, mujoco.mjtObj.mjOBJ_BODY, "target"
         )
 
-        # qpos: [joint1, joint2, obj_slide_x, obj_slide_y]
         self.arm_qpos_slice = slice(0, 2)
         self.arm_qvel_slice = slice(0, 2)
         self.obj_qpos_slice = slice(2, 4)
         self.obj_qvel_slice = slice(2, 4)
 
-        # obs = qpos(2), qvel(2), ee(2), obj(2), target(2), ee->obj(2), obj->target(2)
         self.observation_space = spaces.Box(
             low=-np.inf, high=np.inf, shape=(14,), dtype=np.float32
         )
@@ -110,11 +105,9 @@ class MujocoSingleArmPushEasyEnv(gym.Env):
         return self.data.site_xpos[self.ee_site_id][:2].copy()
 
     def _get_object_pos(self):
-        # movable body의 현재 world position
         return self.data.xpos[self.object_body_id][:2].copy()
 
     def _get_target_pos(self):
-        # target은 static marker body
         return self.model.body_pos[self.target_body_id][:2].copy()
 
     def _get_obs(self):
@@ -152,28 +145,28 @@ class MujocoSingleArmPushEasyEnv(gym.Env):
         self.step_count = 0
         mujoco.mj_resetData(self.model, self.data)
 
-        # 1) arm init
+        # arm init
         self.data.qpos[self.arm_qpos_slice] = np.array([0.0, 0.0], dtype=np.float64)
         self.data.qvel[self.arm_qvel_slice] = np.array([0.0, 0.0], dtype=np.float64)
 
-        # 2) object init: movable body니까 qpos로 넣어야 함
+        # object: 거의 중앙선 근처
         obj_xy = self.np_random.uniform(
-            low=np.array([0.52, -0.10]),
-            high=np.array([0.62, 0.10]),
+            low=np.array([0.54, -0.03]),
+            high=np.array([0.60,  0.03]),
             size=(2,),
         )
         self.data.qpos[self.obj_qpos_slice] = obj_xy.astype(np.float64)
         self.data.qvel[self.obj_qvel_slice] = np.array([0.0, 0.0], dtype=np.float64)
 
-        # 3) target init: static marker body라 model.body_pos로 설정
+        # target: object의 오른쪽에만 배치
         offset = self.np_random.uniform(
-            low=np.array([0.10, -0.08]),
-            high=np.array([0.18, 0.08]),
+            low=np.array([0.12, -0.015]),
+            high=np.array([0.16,  0.015]),
             size=(2,),
         )
         target_xy = obj_xy + offset
-        target_xy[0] = np.clip(target_xy[0], 0.60, 0.85)
-        target_xy[1] = np.clip(target_xy[1], -0.20, 0.20)
+        target_xy[0] = np.clip(target_xy[0], 0.66, 0.82)
+        target_xy[1] = np.clip(target_xy[1], -0.05, 0.05)
 
         self.model.body_pos[self.target_body_id][:2] = target_xy
         self.model.body_pos[self.target_body_id][2] = 0.0
@@ -206,12 +199,10 @@ class MujocoSingleArmPushEasyEnv(gym.Env):
         ee_obj_dist = np.linalg.norm(obj_pos - ee_pos)
         obj_target_dist = np.linalg.norm(target_pos - obj_pos)
 
-        # progress reward
-        reward = 0.2 * float(self.prev_ee_obj_dist - ee_obj_dist)
-        reward += 2.0 * float(self.prev_obj_target_dist - obj_target_dist)
+        reward = 0.3 * float(self.prev_ee_obj_dist - ee_obj_dist)
+        reward += 3.0 * float(self.prev_obj_target_dist - obj_target_dist)
         reward -= 0.01
 
-        # contact bonus는 "진입할 때만"
         entered_contact_1 = (
             self.prev_ee_obj_dist >= self.contact_threshold_1
             and ee_obj_dist < self.contact_threshold_1
@@ -226,13 +217,12 @@ class MujocoSingleArmPushEasyEnv(gym.Env):
         )
 
         if entered_contact_1:
-            reward += 0.02
+            reward += 0.03
         if entered_contact_2:
-            reward += 0.05
+            reward += 0.07
         if entered_contact_3:
-            reward += 0.10
+            reward += 0.12
 
-        # target proximity bonus도 진입형으로
         entered_target_14 = (
             self.prev_obj_target_dist >= 0.14 and obj_target_dist < 0.14
         )
@@ -241,9 +231,9 @@ class MujocoSingleArmPushEasyEnv(gym.Env):
         )
 
         if entered_target_14:
-            reward += 0.03
-        if entered_target_12:
             reward += 0.05
+        if entered_target_12:
+            reward += 0.08
 
         terminated = bool(obj_target_dist < self.success_threshold)
         truncated = bool(self.step_count >= self.max_steps)
