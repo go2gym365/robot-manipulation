@@ -24,3 +24,16 @@
 - 그 결과 PPO evaluation에서 success rate 1.00 (10/10), average steps 14.30을 기록하였다.
 - 이를 통해 PPO가 pushing behavior 자체를 학습할 수 없었던 것이 아니라, 기존 setting에서는 exploration과 task geometry가 너무 어려웠다는 점을 확인했다.
 - 즉 manipulation에서는 reward shaping뿐 아니라 task curriculum 설계가 매우 중요하다는 점을 실험적으로 확인했다.
+
+
+이번 push_easy_v2 실험이 성공한 주요 원인은 두 가지이다.
+첫째, sparse reward 대신 end-effector의 접근, contact 형성, object의 target 방향 progress를 반영하는 dense reward를 설계하여 PPO가 중간 단계의 행동도 학습할 수 있게 했다.
+둘째, object와 target의 배치를 거의 일직선으로 제한하여 task geometry를 단순화함으로써 exploration 난이도를 크게 낮췄다.
+즉 이번 결과는 reward shaping과 curriculum 설계가 함께 작동했을 때 manipulation task에서도 PPO가 안정적으로 수렴할 수 있음을 보여준다.
+
+## Push Medium Fine-tuning Result
+- push_medium task를 scratch로 학습했을 때는 success rate가 매우 낮고 policy가 반복적인 saturated action에 빠지는 문제가 있었다.
+- 이를 해결하기 위해 push_easy에서 학습한 policy를 초기값으로 사용하여 push_medium에 fine-tuning을 적용했다.
+- fine-tuning 결과 evaluation에서 success rate 1.00 (10/10), average steps 16.60을 기록하였다.
+- 이 결과는 pushing skill이 easy task에서 medium task로 전이될 수 있으며, manipulation 학습에서 curriculum learning이 매우 효과적임을 보여준다.
+- 즉 PPO가 medium task를 전혀 학습하지 못하는 것이 아니라, 적절한 skill initialization과 단계적 난이도 증가가 필요하다는 점을 확인했다.
