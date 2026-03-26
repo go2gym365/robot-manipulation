@@ -37,3 +37,9 @@
 - fine-tuning 결과 evaluation에서 success rate 1.00 (10/10), average steps 16.60을 기록하였다.
 - 이 결과는 pushing skill이 easy task에서 medium task로 전이될 수 있으며, manipulation 학습에서 curriculum learning이 매우 효과적임을 보여준다.
 - 즉 PPO가 medium task를 전혀 학습하지 못하는 것이 아니라, 적절한 skill initialization과 단계적 난이도 증가가 필요하다는 점을 확인했다.
+
+
+
+- 학습된 push_medium fine-tuned policy의 일반화 성능을 확인하기 위해, 평가 시 target y variation과 object 위치 분포를 더 넓힌 generalization evaluation을 추가했다.
+- 이 실험의 목적은 현재 policy가 특정 target 방향에 과적합된 것인지, 아니면 일정 수준의 일반적인 pushing skill을 학습했는지 확인하는 것이다.
+- train distribution은 유지하고 eval distribution만 확장함으로써, curriculum으로 학습한 skill의 전이 가능성을 분석한다.
