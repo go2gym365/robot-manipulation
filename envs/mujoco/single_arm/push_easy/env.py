@@ -64,6 +64,10 @@ class MujocoSingleArmPushEasyEnv(gym.Env):
         self.render_mode = render_mode
         self.success_threshold = 0.10
 
+        self.contact_threshold_1 = 0.12
+        self.contact_threshold_2 = 0.08
+        self.contact_threshold_3 = 0.06
+
         self.model = mujoco.MjModel.from_xml_string(XML)
         self.data = mujoco.MjData(self.model)
 
@@ -80,6 +84,12 @@ class MujocoSingleArmPushEasyEnv(gym.Env):
         self.target_body_id = mujoco.mj_name2id(
             self.model, mujoco.mjtObj.mjOBJ_BODY, "target"
         )
+
+        # qpos: [joint1, joint2, obj_slide_x, obj_slide_y]
+        self.arm_qpos_slice = slice(0, 2)
+        self.arm_qvel_slice = slice(0, 2)
+        self.obj_qpos_slice = slice(2, 4)
+        self.obj_qvel_slice = slice(2, 4)
 
         # obs = qpos(2), qvel(2), ee(2), obj(2), target(2), ee->obj(2), obj->target(2)
         self.observation_space = spaces.Box(
@@ -100,14 +110,16 @@ class MujocoSingleArmPushEasyEnv(gym.Env):
         return self.data.site_xpos[self.ee_site_id][:2].copy()
 
     def _get_object_pos(self):
-        return self.model.body_pos[self.object_body_id][:2].copy()
+        # movable body의 현재 world position
+        return self.data.xpos[self.object_body_id][:2].copy()
 
     def _get_target_pos(self):
+        # target은 static marker body
         return self.model.body_pos[self.target_body_id][:2].copy()
 
     def _get_obs(self):
-        qpos = self.data.qpos[:2].copy()
-        qvel = self.data.qvel[:2].copy()
+        qpos = self.data.qpos[self.arm_qpos_slice].copy()
+        qvel = self.data.qvel[self.arm_qvel_slice].copy()
         ee_pos = self._get_ee_pos()
         obj_pos = self._get_object_pos()
         target_pos = self._get_target_pos()
@@ -140,20 +152,20 @@ class MujocoSingleArmPushEasyEnv(gym.Env):
         self.step_count = 0
         mujoco.mj_resetData(self.model, self.data)
 
-        # arm init
-        self.data.qpos[:2] = np.array([0.0, 0.0], dtype=np.float64)
-        self.data.qvel[:2] = np.array([0.0, 0.0], dtype=np.float64)
+        # 1) arm init
+        self.data.qpos[self.arm_qpos_slice] = np.array([0.0, 0.0], dtype=np.float64)
+        self.data.qvel[self.arm_qvel_slice] = np.array([0.0, 0.0], dtype=np.float64)
 
-        # object: easy reachable region
+        # 2) object init: movable body니까 qpos로 넣어야 함
         obj_xy = self.np_random.uniform(
             low=np.array([0.52, -0.10]),
             high=np.array([0.62, 0.10]),
             size=(2,),
         )
-        self.model.body_pos[self.object_body_id][:2] = obj_xy
-        self.model.body_pos[self.object_body_id][2] = 0.0
+        self.data.qpos[self.obj_qpos_slice] = obj_xy.astype(np.float64)
+        self.data.qvel[self.obj_qvel_slice] = np.array([0.0, 0.0], dtype=np.float64)
 
-        # target: close to object, mostly to the right
+        # 3) target init: static marker body라 model.body_pos로 설정
         offset = self.np_random.uniform(
             low=np.array([0.10, -0.08]),
             high=np.array([0.18, 0.08]),
@@ -194,10 +206,44 @@ class MujocoSingleArmPushEasyEnv(gym.Env):
         ee_obj_dist = np.linalg.norm(obj_pos - ee_pos)
         obj_target_dist = np.linalg.norm(target_pos - obj_pos)
 
-        # object movement toward target should dominate reward
+        # progress reward
         reward = 0.2 * float(self.prev_ee_obj_dist - ee_obj_dist)
         reward += 2.0 * float(self.prev_obj_target_dist - obj_target_dist)
         reward -= 0.01
+
+        # contact bonus는 "진입할 때만"
+        entered_contact_1 = (
+            self.prev_ee_obj_dist >= self.contact_threshold_1
+            and ee_obj_dist < self.contact_threshold_1
+        )
+        entered_contact_2 = (
+            self.prev_ee_obj_dist >= self.contact_threshold_2
+            and ee_obj_dist < self.contact_threshold_2
+        )
+        entered_contact_3 = (
+            self.prev_ee_obj_dist >= self.contact_threshold_3
+            and ee_obj_dist < self.contact_threshold_3
+        )
+
+        if entered_contact_1:
+            reward += 0.02
+        if entered_contact_2:
+            reward += 0.05
+        if entered_contact_3:
+            reward += 0.10
+
+        # target proximity bonus도 진입형으로
+        entered_target_14 = (
+            self.prev_obj_target_dist >= 0.14 and obj_target_dist < 0.14
+        )
+        entered_target_12 = (
+            self.prev_obj_target_dist >= 0.12 and obj_target_dist < 0.12
+        )
+
+        if entered_target_14:
+            reward += 0.03
+        if entered_target_12:
+            reward += 0.05
 
         terminated = bool(obj_target_dist < self.success_threshold)
         truncated = bool(self.step_count >= self.max_steps)

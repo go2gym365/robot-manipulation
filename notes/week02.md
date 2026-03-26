@@ -11,3 +11,9 @@
 - end-effector는 object 근처까지 접근했지만, object를 목표 방향으로 실제로 미는 정책은 학습되지 않았다.
 - 이를 통해 touch와 pushing 사이에도 난이도 차이가 크며, pushing에서는 contact 이후의 방향성 있는 manipulation이 추가로 필요하다는 점을 확인했다.
 - 다음 단계에서는 heuristic pushing controller를 통해 환경 자체에서 object relocation이 가능한지 먼저 검증할 예정이다.
+
+
+- push_easy 환경의 object state tracking과 reward 구조를 수정한 뒤, PPO evaluation에서 success rate는 0/10에서 1/10으로 소폭 개선되었다.
+- end-effector는 object 쪽으로 접근하는 행동을 일부 학습했지만, object-target distance를 안정적으로 줄이는 pushing policy는 아직 형성되지 않았다.
+- 즉 현재 단계에서는 접근(skill of reaching object)은 부분적으로 학습되었지만, contact 이후 target 방향으로 물체를 밀어내는 manipulation은 여전히 어렵다는 점을 확인했다.
+- 다음 단계에서는 push task를 더 쉬운 curriculum으로 바꾸기 위해 object와 target 배치를 거의 일직선(오른쪽 방향)으로 제한하는 실험을 진행할 예정이다.
